@@ -1,0 +1,440 @@
+// The contents of this file are in the public domain. See LICENSE_FOR_EXAMPLE_PROGRAMS.txt
+/*
+
+This example program shows how to find frontal human faces in an image and
+estimate their pose.  The pose takes the form of 68 landmarks.  These are
+points on the face such as the corners of the mouth, along the eyebrows, on
+the eyes, and so forth.
+
+
+This example is essentially just a version of the face_landmark_detection_ex.cpp
+example modified to use OpenCV's VideoCapture object to read from a camera instead
+of files.
+
+
+Finally, note that the face detector is fastest when compiled with at least
+SSE2 instructions enabled.  So if you are using a PC with an Intel or AMD
+chip then you should enable at least SSE2 instructions.  If you are using
+cmake to compile this program you can enable them by using one of the
+following commands when you create the build project:
+cmake path_to_dlib_root/examples -DUSE_SSE2_INSTRUCTIONS=ON
+cmake path_to_dlib_root/examples -DUSE_SSE4_INSTRUCTIONS=ON
+cmake path_to_dlib_root/examples -DUSE_AVX_INSTRUCTIONS=ON
+This will set the appropriate compiler options for GCC, clang, Visual
+Studio, or the Intel compiler.  If you are using another compiler then you
+need to consult your compiler's manual to determine how to enable these
+instructions.  Note that AVX is the fastest but requires a CPU from at least
+2011.  SSE4 is the next fastest and is supported by most current machines.
+*/
+
+#include <dlib/opencv.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2\opencv.hpp>
+#include <dlib/image_processing/frontal_face_detector.h>
+#include <dlib/image_processing/render_face_detections.h>
+#include <dlib/image_processing.h>
+#include <dlib/gui_widgets.h>
+#include"svm.h"
+
+using namespace dlib;
+using namespace std;
+
+//cv::Point cPoint[68];
+cv::vector<cv::Point> cPoints;
+double featureScaler;
+struct svm_node *node;
+struct svm_model *svmModel;
+char*mdFile = "face2.model";
+cv::Point textArea;
+cv::VideoCapture cap;
+
+
+
+double innerBrowRaiser;     //AU 1
+double outerBrowRaiser;     //AU 2
+double browLower;           //AU 4
+double upperLidRaiser;      //AU 5
+double lidTightener;        //AU 7
+double noseWrinkler;        //AU 9
+double lipCornerPull;       //AU 12
+double lipCornerDepress;    //AU 15
+double lowerLipDepress;     //AU 16
+double lipStretch;          //AU 20
+double lipTightener;        //AU 23
+double jawDrop;             //AU 26
+
+double getDist(cv::Point p1, cv::Point p2)
+{
+	double r = sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+	return r;
+}
+
+double getDistX(cv::Point p1, cv::Point p2)
+{
+	double r = abs(p1.x - p2.x);
+	return r;
+}
+
+double getDistY(cv::Point p1, cv::Point p2)
+{
+	double r = abs(p1.y - p2.y);
+	return r;
+}
+
+
+//emotion estimation
+
+/*string emotion_estimation(cv::vector<cv::Point> cPoints)
+{
+	if ((svmModel = svm_load_model(mdFile)) == 0)
+	{
+		std::cout << "can not open model file!!" << std::endl;
+		exit(0);
+	}
+
+	//allocate memory from svm node
+	node = (struct svm_node *)malloc(64 * sizeof(struct svm_node));
+
+	//loop until quit 
+	bool fail = true;
+	//assign feature scaler as the width of the face, which does not change in response to different expression
+	featureScaler = (getDistX(cPoints[0], cPoints[16]) + getDistX(cPoints[1], cPoints[15]) + getDistX(cPoints[2], cPoints[14])) / 3;
+	//assign action unit 1
+	innerBrowRaiser = ((getDistY(cPoints[21], cPoints[27]) + getDistY(cPoints[22], cPoints[27])) / 2) / featureScaler;
+	//assign action unit 2
+	outerBrowRaiser = ((getDistY(cPoints[17], cPoints[27]) + getDistY(cPoints[26], cPoints[27])) / 2) / featureScaler;
+	//assign action unit 4
+	browLower = (((getDistY(cPoints[17], cPoints[27]) + getDistY(cPoints[18], cPoints[27]) +
+		getDistY(cPoints[19], cPoints[27]) + getDistY(cPoints[20], cPoints[27]) +
+		getDistY(cPoints[21], cPoints[27])) / 5 +
+		(getDistY(cPoints[22], cPoints[27]) + getDistY(cPoints[23], cPoints[27]) +
+		getDistY(cPoints[24], cPoints[27]) + getDistY(cPoints[25], cPoints[27]) +
+		getDistY(cPoints[26], cPoints[27])) / 5) / 2) / featureScaler;
+	//assign action unit 5
+	upperLidRaiser = ((getDistY(cPoints[37], cPoints[27]) + getDistY(cPoints[44], cPoints[27])) / 2) / featureScaler;
+	//assign action unit 7
+	lidTightener = ((getDistY(cPoints[37], cPoints[41]) + getDistY(cPoints[38], cPoints[40])) / 2 +
+		(getDistY(cPoints[43], cPoints[47]) + getDistY(cPoints[44], cPoints[46])) / 2) / featureScaler;
+	//assign action unit 9
+	noseWrinkler = (getDistY(cPoints[29], cPoints[27]) + getDistY(cPoints[30], cPoints[27])) / featureScaler;
+	//assign action unit 12
+	lipCornerPull = ((getDistY(cPoints[48], cPoints[33]) + getDistY(cPoints[54], cPoints[33])) / 2) / featureScaler;
+	//assign action unit 16
+	lowerLipDepress = getDistY(cPoints[57], cPoints[33]) / featureScaler;
+	//assign action unit 20
+	lipStretch = getDistX(cPoints[48], cPoints[54]) / featureScaler;
+	//assign action unit 23
+	lipTightener = (getDistY(cPoints[49], cPoints[59]) +
+		getDistY(cPoints[50], cPoints[58]) +
+		getDistY(cPoints[51], cPoints[57]) +
+		getDistY(cPoints[52], cPoints[56]) +
+		getDistY(cPoints[53], cPoints[55])) / featureScaler;
+	//assign action unit 26
+	jawDrop = getDistY(cPoints[8], cPoints[27]) / featureScaler;
+	double class_nr = 0;
+	int class_nr_int = 0;
+	int i = 0;
+	for (i = 0; i < 11; i++)
+	{
+		node[i].index = i;
+	}
+	node[11].index = -1;
+
+	//assign value of nodes
+	node[0].value = innerBrowRaiser;
+	node[1].value = outerBrowRaiser;
+	node[2].value = browLower;
+	node[3].value = upperLidRaiser;
+	node[4].value = lidTightener;
+	node[5].value = noseWrinkler;
+	node[6].value = lipCornerPull;
+	node[7].value = lowerLipDepress;
+	node[8].value = lipStretch;
+	node[9].value = lipTightener;
+	node[10].value = jawDrop;
+
+	std::cout << innerBrowRaiser << endl;
+	cout << outerBrowRaiser << endl;
+	cout << browLower << endl;
+	cout << upperLidRaiser << endl;
+	cout << lidTightener << endl;
+	cout << noseWrinkler << endl;
+	cout << lipCornerDepress << endl;
+	cout << lowerLipDepress << endl;
+	cout << lipStretch << endl;
+	cout << lipTightener << endl;
+	cout << jawDrop << endl;
+
+	string result;
+	//predict the class
+	//0: neutral face
+	//1: happy
+	//2: angry
+	//3: disgust
+	//-1 sad
+	//-2 suprise
+	//-3 fear
+	/*double result_pro[7];
+	double result_1 = svm_predict_probability(svmModel, node, result_pro);
+	std::cout << "final" << result_1 << std::endl;
+	for (int i = 0; i < 7; i++)
+	{
+		std::cout << result_pro[i] << std::endl;
+	}*/
+
+
+
+	/*class_nr = svm_predict(svmModel, node);
+	class_nr_int = (int)class_nr;
+	if (class_nr_int == 2) {
+		//std::cout << "Angry" << std::endl;
+		result = "Angry";
+
+	}
+	else if (class_nr_int == 1){
+		//std::cout << "Happy" << std::endl;
+		result = "happy";
+	}
+	else if (class_nr_int == 3){
+		//std::cout << "Disgust" << std::endl;
+		result = "Disgust";
+	}
+	else if (class_nr_int == -1){
+		//std::cout << "Sad" << std::endl;
+		result = "Sad";
+	}
+	else if (class_nr_int == -2){
+		//std::cout << "Surprise" << std::endl;
+		result = "Surprise";
+	}
+	else if (class_nr_int == -3){
+		//std::cout << "Fear" << std::endl;
+		result = "Fear";
+	}
+	else
+	{
+		//std::cout << "Neutral" << std::endl;
+		result = "Neutral";
+	}
+}*/
+
+
+
+frontal_face_detector detector = get_frontal_face_detector();
+shape_predictor pose_model;
+
+int main(){
+
+
+	deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
+
+	//把所有的脸部截取出来提高识别的准确率
+
+	double duration;
+	duration = static_cast<double>(cv::getTickCount());
+
+	cv::Mat img = cv::imread("happy10.jpg");
+	//cv::Mat img;
+	cv::Mat friFrame;
+
+	/*if (!(cap.open(0)))
+	{
+		std::cout << "please set your camera!!!!" << std::endl;
+		exit(0);
+	}*/
+
+	//for (int i = 0;; i++)
+	//{
+		//cap >> img;
+		//if (i == 0)
+		//{
+			img.copyTo(friFrame);
+			//points.clear();
+			cv_image<bgr_pixel> cimg(friFrame);
+			//cv_image<bgr_pixel> cimg(img);
+			std::vector<rectangle> faces = detector(cimg);
+			if (faces.size() == 0)
+			{
+				std::cout << "can't detect the face" << endl;
+				exit(0);
+			}
+			//std::cout << faces.size() << std::endl;
+			std::vector<full_object_detection> shapes;
+			for (int i = 0; i < faces.size(); i++)
+			{
+				full_object_detection shape = pose_model(cimg, faces[i]);
+				shapes.push_back(shape);
+			}
+
+			cout << "face size" << faces.size() << endl;
+			/*for (int i = 0; i < shapes.size(); i++)
+			{
+				full_object_detection shape = shapes[i];
+				rectangle faceRect = shape.get_rect();
+				int width = faceRect.width();
+				int height = faceRect.height();
+				int point_x = faceRect.left();
+				int point_y = faceRect.top();
+				cv::Rect face_rect(point_x, point_y, width, height);
+				cv::Mat faceRoi = img(face_rect);
+				cv::imshow("faceROI", faceRoi);
+				//cv::imwrite("roi.jpg", faceRoi);
+				cv::waitKey(600);
+
+				for (int j = 0; j < 68; j++)
+				{
+					cv::Point2f temp;
+					temp.x = shape.part(i)(0);
+					temp.y = shape.part(i)(1);
+					points.push_back(temp);
+				}
+			}*/
+
+			full_object_detection shape = shapes[0];
+			//std::cout << shape.part(1).size();
+			for (int i = 0; i < 68; i++)
+			{
+				//std::cout << shape.part(i).size();
+				cv::Point2f temp;
+				temp.x = shape.part(i)(0);
+				temp.y = shape.part(i)(1);
+				cPoints.push_back(temp);
+				cv::line(img, cv::Point(shape.part(44)(0), shape.part(44)(1)), temp, cv::Scalar(0, 0, 255));
+
+			}
+			cv::imshow("final_img", img);
+			cv::waitKey(0);
+			//assign feature scaler as the width of the face, which does not change in response to different expression
+			featureScaler = (getDistX(cPoints[0], cPoints[16]) + getDistX(cPoints[1], cPoints[15]) + getDistX(cPoints[2], cPoints[14])) / 3;
+			//assign action unit 1
+			innerBrowRaiser = ((getDistY(cPoints[21], cPoints[27]) + getDistY(cPoints[22], cPoints[27])) / 2) / featureScaler;
+			//assign action unit 2
+			outerBrowRaiser = ((getDistY(cPoints[17], cPoints[27]) + getDistY(cPoints[26], cPoints[27])) / 2) / featureScaler;
+			//assign action unit 4
+			browLower = (((getDistY(cPoints[17], cPoints[27]) + getDistY(cPoints[18], cPoints[27]) +
+				getDistY(cPoints[19], cPoints[27]) + getDistY(cPoints[20], cPoints[27]) +
+				getDistY(cPoints[21], cPoints[27])) / 5 +
+				(getDistY(cPoints[22], cPoints[27]) + getDistY(cPoints[23], cPoints[27]) +
+				getDistY(cPoints[24], cPoints[27]) + getDistY(cPoints[25], cPoints[27]) +
+				getDistY(cPoints[26], cPoints[27])) / 5) / 2) / featureScaler;
+			//assign action unit 5
+			upperLidRaiser = ((getDistY(cPoints[37], cPoints[27]) + getDistY(cPoints[44], cPoints[27])) / 2) / featureScaler;
+			//assign action unit 7
+			lidTightener = ((getDistY(cPoints[37], cPoints[41]) + getDistY(cPoints[38], cPoints[40])) / 2 +
+				(getDistY(cPoints[43], cPoints[47]) + getDistY(cPoints[44], cPoints[46])) / 2) / featureScaler;
+			//assign action unit 9
+			noseWrinkler = (getDistY(cPoints[29], cPoints[27]) + getDistY(cPoints[30], cPoints[27])) / featureScaler;
+			//assign action unit 12
+			lipCornerPull = ((getDistY(cPoints[48], cPoints[33]) + getDistY(cPoints[54], cPoints[33])) / 2) / featureScaler;
+			//assign action unit 16
+			lowerLipDepress = getDistY(cPoints[57], cPoints[33]) / featureScaler;
+			//assign action unit 20
+			lipStretch = getDistX(cPoints[48], cPoints[54]) / featureScaler;
+			//assign action unit 23
+			lipTightener = (getDistY(cPoints[49], cPoints[59]) +
+				getDistY(cPoints[50], cPoints[58]) +
+				getDistY(cPoints[51], cPoints[57]) +
+				getDistY(cPoints[52], cPoints[56]) +
+				getDistY(cPoints[53], cPoints[55])) / featureScaler;
+			//assign action unit 26
+			jawDrop = getDistY(cPoints[8], cPoints[27]) / featureScaler;
+
+			if ((svmModel = svm_load_model(mdFile)) == 0)
+			{
+				std::cout << "can not open model file!!" << std::endl;
+				exit(0);
+			}
+
+			//allocate memory from svm node
+			node = (struct svm_node *)malloc(64 * sizeof(struct svm_node));
+
+			double class_nr = 0;
+			int class_nr_int = 0;
+			int i = 0;
+			for (i = 0; i < 11; i++)
+			{
+				node[i].index = i;
+			}
+			node[11].index = -1;
+
+			//assign value of nodes
+			node[0].value = innerBrowRaiser;
+			node[1].value = outerBrowRaiser;
+			node[2].value = browLower;
+			node[3].value = upperLidRaiser;
+			node[4].value = lidTightener;
+			node[5].value = noseWrinkler;
+			node[6].value = lipCornerPull;
+			node[7].value = lowerLipDepress;
+			node[8].value = lipStretch;
+			node[9].value = lipTightener;
+			node[10].value = jawDrop;
+
+			std::cout << innerBrowRaiser << endl;
+			cout << outerBrowRaiser << endl;
+			cout << browLower << endl;
+			cout << upperLidRaiser << endl;
+			cout << lidTightener << endl;
+			cout << noseWrinkler << endl;
+			cout << lipCornerDepress << endl;
+			cout << lowerLipDepress << endl;
+			cout << lipStretch << endl;
+			cout << lipTightener << endl;
+			cout << jawDrop << endl;
+			//textArea = cv::Point(points[8].x - 50, points[8].y + 50)
+			//predict the class
+			//0: neutral face
+			//1: happy
+			//2: angry
+			//3: disgust
+			//-1 sad
+			//-2 suprise
+			//-3 fear
+			class_nr = svm_predict(svmModel, node);
+			class_nr_int = (int)class_nr;
+
+			if (class_nr_int == 2){
+				std::cout << "angry" << std::endl;
+			}
+			else if (class_nr_int == 1)
+			{
+				std::cout << "happy" << std::endl;
+			}
+			else if (class_nr_int == 3)
+			{
+				std::cout << "disgust" << std::endl;
+			}
+			else if (class_nr_int == -1){
+				std::cout << "sad" << std::endl;
+			}
+			else if (class_nr_int == -2)
+			{
+				std::cout << "surprise" << std::endl;
+			}
+			else if (class_nr_int == -3)
+			{
+				std::cout << "fear" << std::endl;
+			}
+			else
+			{
+				std::cout << "nature" << std::endl;
+			}
+
+			duration = static_cast<double>(cv::getTickCount()) - duration;
+			duration /= cv::getTickFrequency(); // the elapsed time in ms
+			std::cout << "time" << duration << std::endl;
+		//}
+
+		//cv::putText(img, preResult, textArea,1,3.0,cv::Scalar(255,0,0));
+		//cv::imshow("test", img);
+		//cv::waitKey(100);
+	//}
+
+	//cv::imshow("frist", friFrame);
+	//cv::waitKey(0);
+
+	
+	return 0;
+}
+
+

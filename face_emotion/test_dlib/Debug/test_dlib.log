@@ -1,0 +1,10 @@
+﻿生成启动时间为 2017/5/10 11:08:37。
+     1>项目“C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\test_dlib\test_dlib.vcxproj”在节点 2 上(Rebuild 个目标)。
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /O2 /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt "..\..\dlib-19.0\dlib\all\source.cpp" svm.cpp trian.cpp webcam.cpp
+     1>cl : 命令行 error D8016: “/ZI”和“/O2”命令行选项不兼容
+     1>已完成生成项目“C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\test_dlib\test_dlib.vcxproj”(Rebuild 个目标)的操作 - 失败。
+
+生成失败。
+
+已用时间 00:00:00.32

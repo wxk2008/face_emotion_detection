@@ -1,0 +1,21 @@
+﻿生成启动时间为 2017/5/10 13:33:52。
+     1>项目“C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\test_dlib\test_dlib.vcxproj”在节点 2 上(Build 个目标)。
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_DEPRECATE /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt webcam.cpp
+         webcam.cpp
+     1>c:\users\wangxiaoke.domrst\desktop\face_test\dlib-19.0\dlib\image_transforms/morphological_operations.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+     1>webcam.cpp(233): warning C4018: “<”: 有符号/无符号不匹配
+     1>webcam.cpp(238): warning C4018: “<”: 有符号/无符号不匹配
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\Release\test_dlib.exe" /INCREMENTAL:NO /NOLOGO opencv_calib3d2411.lib opencv_contrib2411.lib opencv_core2411.lib opencv_features2d2411.lib opencv_flann2411.lib opencv_gpu2411.lib opencv_highgui2411.lib opencv_imgproc2411.lib opencv_legacy2411.lib opencv_ml2411.lib opencv_nonfree2411.lib opencv_objdetect2411.lib opencv_ocl2411.lib opencv_photo2411.lib opencv_stitching2411.lib opencv_superres2411.lib opencv_ts2411.lib opencv_video2411d.lib opencv_videostab2411d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\Release\test_dlib.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\Release\test_dlib.lib" /MACHINE:X86 /SAFESEH Release\source.obj
+         Release\svm.obj
+         Release\trian.obj
+         Release\webcam.obj
+         正在生成代码
+         已完成代码的生成
+         test_dlib.vcxproj -> C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\Release\test_dlib.exe
+     1>已完成生成项目“C:\Users\wangxiaoke.DOMRST\Desktop\face_test\face_emotion\test_dlib\test_dlib.vcxproj”(Build 个目标)的操作。
+
+生成成功。
+
+已用时间 00:00:17.12
